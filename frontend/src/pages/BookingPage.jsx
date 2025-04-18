@@ -96,9 +96,14 @@ const BookingPage = () => {
       return;
     }
 
+    // Format times to remove seconds
+    const formatTime = (time) => time.split(':').slice(0, 2).join(':');
+    const formattedStartTime = formatTime(startTime);
+    const formattedEndTime = formatTime(endTime);
+
     // Validate time range
-    const start = new Date(`${formatDate(bookingDate)}T${startTime}`);
-    const end = new Date(`${formatDate(bookingDate)}T${endTime}`);
+    const start = new Date(`${formatDate(bookingDate)}T${formattedStartTime}`);
+    const end = new Date(`${formatDate(bookingDate)}T${formattedEndTime}`);
 
     if (start >= end) {
       toast.error('End time must be after start time');
@@ -108,13 +113,30 @@ const BookingPage = () => {
     setIsSubmitting(true);
 
     try {
+      // First check if the court is available
+      const availabilityResponse = await api.get('/bookings/available', {
+        params: {
+          venueId: parseInt(venueId),
+          date: formatDate(bookingDate),
+          startTime: formattedStartTime,
+          endTime: formattedEndTime,
+          courtNumber: parseInt(courtNumber)
+        }
+      });
+
+      if (!availabilityResponse.data) {
+        toast.error('This time slot is no longer available. Please select a different time or court.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Create booking data
       const bookingData = {
         venueId: parseInt(venueId),
         userId: parseInt(userId),
         bookingDate: formatDate(bookingDate),
-        startTime: startTime,
-        endTime: endTime,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
         courtNumber: parseInt(courtNumber),
         totalAmount: parseFloat(totalAmount)
       };
@@ -125,16 +147,15 @@ const BookingPage = () => {
       const response = await api.post('/bookings', bookingData);
       console.log('Booking response:', response.data);
       
-      toast.success('Booking created successfully!');
-      navigate('/my-bookings');
+      // Navigate to payment page with the booking ID
+      navigate(`/payment/${response.data.id}`);
     } catch (err) {
       console.error('Error creating booking:', err);
       if (err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error('Failed to create booking');
+        toast.error('Failed to create booking. Please try again.');
       }
-    } finally {
       setIsSubmitting(false);
     }
   };

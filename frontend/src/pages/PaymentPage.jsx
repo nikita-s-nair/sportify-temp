@@ -1,149 +1,187 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/api';
 
 const PaymentPage = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    fetchBookingDetails();
-  }, [bookingId]);
-
-  const fetchBookingDetails = async () => {
-    try {
-      const response = await api.get(`/bookings/${bookingId}`);
-      setBooking(response.data);
-    } catch (error) {
-      console.error('Error fetching booking details:', error);
-      toast.error('Failed to load booking details');
-      navigate('/bookings');
-    } finally {
-      setLoading(false);
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
     }
-  };
 
-  const handlePayment = async () => {
+    const fetchBookingDetails = async () => {
+      try {
+        const response = await api.get(`/bookings/${bookingId}`);
+        setBooking(response.data);
+      } catch (err) {
+        console.error('Error fetching booking:', err);
+        setError('Failed to load booking details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookingDetails();
+  }, [bookingId, isLoggedIn, navigate]);
+
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+
     try {
-      setProcessing(true);
-      
-      // Create payment record
-      const paymentResponse = await api.post('/payments', {
+      // Extract only the necessary data from the booking
+      const paymentData = {
         bookingId: booking.id,
         amount: booking.totalAmount,
-        userId: user.id,
-        status: 'COMPLETED'
-      });
+        paymentMethod: paymentMethod,
+        cardNumber: cardNumber.replace(/\s/g, ''),
+        expiryDate: expiryDate,
+        cvv: cvv
+      };
 
+      console.log('Submitting payment data:', paymentData);
+      
+      const response = await api.post('/payments', paymentData);
+      console.log('Payment response:', response.data);
+      
       // Update booking status
-      await api.put(`/bookings/${bookingId}/status`, {
-        status: 'COMPLETED'
-      });
-
-      toast.success('Payment successful!');
-      navigate('/bookings');
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      toast.error('Payment failed. Please try again.');
+      await api.put(`/bookings/${booking.id}/status?status=CONFIRMED`);
+      
+      toast.success('Payment successful! Your booking has been confirmed.');
+      navigate('/my-bookings');
+    } catch (err) {
+      console.error('Payment error:', err);
+      toast.error(err.response?.data?.message || 'Payment failed. Please try again.');
     } finally {
-      setProcessing(false);
+      setIsProcessing(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
       </div>
     );
   }
 
   if (!booking) {
-    return null;
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+          Booking not found
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Payment Details</h2>
-            
-            <div className="space-y-4 mb-8">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Venue:</span>
-                <span className="font-medium">{booking.venue.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <span className="font-medium">{new Date(booking.bookingDate).toLocaleDateString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Time:</span>
-                <span className="font-medium">{booking.startTime} - {booking.endTime}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Court Number:</span>
-                <span className="font-medium">{booking.courtNumber}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total Amount:</span>
-                <span className="text-green-600">${booking.totalAmount}</span>
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="card"
-                    name="paymentMethod"
-                    value="card"
-                    defaultChecked
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <label htmlFor="card" className="ml-3">
-                    Credit/Debit Card
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="upi"
-                    name="paymentMethod"
-                    value="upi"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <label htmlFor="upi" className="ml-3">
-                    UPI
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handlePayment}
-                disabled={processing}
-                className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-                  processing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {processing ? 'Processing Payment...' : 'Complete Payment'}
-              </button>
-            </div>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Complete Payment</h1>
+      
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">Booking Summary</h2>
+          <div className="space-y-2">
+            <p className="text-gray-600">Venue: {booking.venue.name}</p>
+            <p className="text-gray-600">Date: {new Date(booking.bookingDate).toLocaleDateString()}</p>
+            <p className="text-gray-600">Time: {booking.startTime} - {booking.endTime}</p>
+            <p className="text-gray-600">Court: {booking.courtNumber}</p>
+            <p className="text-gray-600 font-semibold">Total Amount: ${booking.totalAmount}</p>
           </div>
         </div>
+
+        <form onSubmit={handlePayment} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            >
+              <option value="card">Credit/Debit Card</option>
+              <option value="upi">UPI</option>
+            </select>
+          </div>
+
+          {paymentMethod === 'card' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Card Number</label>
+                <input
+                  type="text"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').match(/.{1,4}/g)?.join(' ') || '')}
+                  maxLength="19"
+                  placeholder="1234 5678 9012 3456"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
+                  <input
+                    type="text"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value.replace(/\D/g, '').match(/.{1,2}/g)?.join('/') || '')}
+                    maxLength="5"
+                    placeholder="MM/YY"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">CVV</label>
+                  <input
+                    type="text"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    maxLength="3"
+                    placeholder="123"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {isProcessing ? 'Processing Payment...' : 'Make Payment'}
+          </button>
+        </form>
       </div>
     </div>
   );

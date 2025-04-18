@@ -61,14 +61,13 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<Booking> createBooking(@RequestBody BookingRequest request) {
         Booking booking = bookingService.createBooking(
-            request.getVenueId(),
-            request.getUserId(),
-            request.getBookingDate(),
-            request.getStartTime(),
-            request.getEndTime(),
-            request.getCourtNumber(),
-            request.getTotalAmount()
-        );
+                request.getVenueId(),
+                request.getUserId(),
+                request.getBookingDate(),
+                request.getStartTime(),
+                request.getEndTime(),
+                request.getCourtNumber(),
+                request.getTotalAmount());
         return ResponseEntity.ok(booking);
     }
 
@@ -102,6 +101,11 @@ public class BookingController {
             @RequestParam Integer courtNumber) {
         return ResponseEntity.ok(bookingService.isCourtAvailable(venueId, date, startTime, endTime, courtNumber));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Booking> getBookingById(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingById(id));
+    }
 }
 
 class BookingRequest {
@@ -114,18 +118,59 @@ class BookingRequest {
     private Double totalAmount;
 
     // Getters and Setters
-    public Long getVenueId() { return venueId; }
-    public void setVenueId(Long venueId) { this.venueId = venueId; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public LocalDate getBookingDate() { return bookingDate; }
-    public void setBookingDate(LocalDate bookingDate) { this.bookingDate = bookingDate; }
-    public LocalTime getStartTime() { return startTime; }
-    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
-    public LocalTime getEndTime() { return endTime; }
-    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
-    public Integer getCourtNumber() { return courtNumber; }
-    public void setCourtNumber(Integer courtNumber) { this.courtNumber = courtNumber; }
-    public Double getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public Long getVenueId() {
+        return venueId;
+    }
+
+    public void setVenueId(Long venueId) {
+        this.venueId = venueId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public LocalDate getBookingDate() {
+        return bookingDate;
+    }
+
+    public void setBookingDate(LocalDate bookingDate) {
+        this.bookingDate = bookingDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public Integer getCourtNumber() {
+        return courtNumber;
+    }
+
+    public void setCourtNumber(Integer courtNumber) {
+        this.courtNumber = courtNumber;
+    }
+
+    public Double getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(Double totalAmount) {
+        this.totalAmount = totalAmount;
+    }
 }

@@ -28,8 +28,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Autowired
     public BookingServiceImpl(BookingRepository bookingRepository,
-                            UserRepository userRepository,
-                            VenueRepository venueRepository) {
+            UserRepository userRepository,
+            VenueRepository venueRepository) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.venueRepository = venueRepository;
@@ -43,7 +43,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Map<String, Object> getAdminBookingStats() {
         List<Booking> allBookings = bookingRepository.findAll();
-        
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalBookings", allBookings.size());
         stats.put("activeBookings", allBookings.stream()
@@ -56,14 +56,14 @@ public class BookingServiceImpl implements BookingService {
                 .filter(b -> b.getStatus() == BookingStatus.CONFIRMED)
                 .mapToDouble(Booking::getTotalAmount)
                 .sum());
-        
+
         return stats;
     }
 
     @Override
     public Map<String, Object> getManagerBookingStats() {
         List<Booking> allBookings = bookingRepository.findAll();
-        
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalBookings", allBookings.size());
         stats.put("activeBookings", allBookings.stream()
@@ -76,12 +76,12 @@ public class BookingServiceImpl implements BookingService {
                 .filter(b -> b.getStatus() == BookingStatus.CONFIRMED)
                 .mapToDouble(Booking::getTotalAmount)
                 .sum());
-        
+
         // Add venue-specific stats
         Map<Long, Long> bookingsPerVenue = allBookings.stream()
                 .collect(Collectors.groupingBy(b -> b.getVenue().getId(), Collectors.counting()));
         stats.put("bookingsPerVenue", bookingsPerVenue);
-        
+
         return stats;
     }
 
@@ -92,18 +92,18 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking createBooking(Long venueId, Long userId, LocalDate bookingDate,
-                               LocalTime startTime, LocalTime endTime, Integer courtNumber,
-                               Double totalAmount) {
+            LocalTime startTime, LocalTime endTime, Integer courtNumber,
+            Double totalAmount) {
         // Check if the court is available
         if (!isCourtAvailable(venueId, bookingDate, startTime, endTime, courtNumber)) {
             throw new IllegalStateException("Court is not available for the selected time slot");
         }
 
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
         Venue venue = venueRepository.findById(venueId)
-            .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + venueId));
+                .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + venueId));
 
         Booking booking = new Booking();
         booking.setVenue(venue);
@@ -151,7 +151,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public boolean isCourtAvailable(Long venueId, LocalDate date, LocalTime startTime,
-                                  LocalTime endTime, Integer courtNumber) {
+            LocalTime endTime, Integer courtNumber) {
         List<Booking> conflictingBookings = bookingRepository.findConflictingBookings(
                 venueId, date, startTime, endTime, courtNumber);
         return conflictingBookings.isEmpty();
@@ -159,8 +159,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking getBookingById(Long bookingId) {
-        return bookingRepository.findById(bookingId)
-            .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + bookingId));
+        return bookingRepository.findByIdWithDetails(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + bookingId));
     }
 
     @Override
@@ -171,4 +171,4 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         bookingRepository.save(booking);
     }
-} 
+}
