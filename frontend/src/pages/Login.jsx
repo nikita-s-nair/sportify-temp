@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -43,13 +44,30 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const response = await api.post('/users/login', formData);
-      await login(response.data.token, {
-        username: response.data.username,
-        role: response.data.role
-      });
+      // First, get the login token
+      const loginResponse = await api.post('/users/login', formData);
+      const { token } = loginResponse.data;
+
+      // Set the token in the API headers
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Get user details
+      const userResponse = await api.get('/users/me');
+      const userData = {
+        id: userResponse.data.id,
+        username: loginResponse.data.username,
+        role: loginResponse.data.role
+      };
+
+      console.log('User data:', userData);
+
+      // Login with complete user data
+      await login(token, userData);
       toast.success('Logged in successfully!');
-      navigate('/');
+      
+      // Navigate to the intended page or default to home
+      const from = location.state?.from || '/';
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error.response?.data?.message || error.response?.data || 'Failed to login. Please try again later.';
@@ -58,6 +76,8 @@ export default function Login() {
       } else {
         toast.error(errorMessage);
       }
+      // Clear the auth header if there was an error
+      delete api.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,7 @@ import VenueManagerVenues from './components/dashboard/VenueManagerVenues';
 import AdminBookings from './components/dashboard/AdminBookings';
 import VenueManagerBookings from './components/dashboard/VenueManagerBookings';
 import BookingPage from './pages/BookingPage';
+import PaymentPage from './pages/PaymentPage';
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             <Route path="/venues" element={<Venues />} />
             <Route path="/browse-venues" element={<VenueList />} />
             <Route path="/book/:venueId" element={<BookingPage />} />
+            <Route path="/payment/:bookingId" element={<PaymentPage />} />
             
             {/* User Routes */}
             <Route path="/profile/:username" element={<Profile />} />
