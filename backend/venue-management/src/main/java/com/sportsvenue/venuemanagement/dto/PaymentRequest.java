@@ -3,10 +3,11 @@ package com.sportsvenue.venuemanagement.dto;
 public class PaymentRequest {
     private Long bookingId;
     private Double amount;
+    private String method;
+    private String status;
+    private String paymentDate;
     private String paymentMethod;
-    private String cardNumber;
-    private String expiryDate;
-    private String cvv;
+    private String transactionId;
 
     // Getters and Setters
     public Long getBookingId() {
@@ -25,6 +26,30 @@ public class PaymentRequest {
         this.amount = amount;
     }
 
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(String paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
     public String getPaymentMethod() {
         return paymentMethod;
     }
@@ -33,27 +58,11 @@ public class PaymentRequest {
         this.paymentMethod = paymentMethod;
     }
 
-    public String getCardNumber() {
-        return cardNumber;
+    public String getTransactionId() {
+        return transactionId;
     }
 
-    public void setCardNumber(String cardNumber) {
-        this.cardNumber = cardNumber;
-    }
-
-    public String getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(String expiryDate) {
-        this.expiryDate = expiryDate;
-    }
-
-    public String getCvv() {
-        return cvv;
-    }
-
-    public void setCvv(String cvv) {
-        this.cvv = cvv;
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 }

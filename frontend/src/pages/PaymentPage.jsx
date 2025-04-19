@@ -12,9 +12,6 @@ const PaymentPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -43,29 +40,37 @@ const PaymentPage = () => {
     setIsProcessing(true);
 
     try {
-      // Extract only the necessary data from the booking
+      // Format the payment data according to the actual database schema
       const paymentData = {
-        bookingId: booking.id,
-        amount: booking.totalAmount,
+        bookingId: parseInt(booking.id),
+        amount: parseFloat(booking.totalAmount),
+        method: paymentMethod,
+        status: 'COMPLETED',
+        // Format the date in a way that can be parsed by Java's LocalDateTime
+        paymentDate: new Date().toISOString().replace('Z', ''),
         paymentMethod: paymentMethod,
-        cardNumber: cardNumber.replace(/\s/g, ''),
-        expiryDate: expiryDate,
-        cvv: cvv
+        transactionId: 'TXN' + Date.now() + Math.floor(Math.random() * 1000)
       };
 
       console.log('Submitting payment data:', paymentData);
       
+      // First create the payment
       const response = await api.post('/payments', paymentData);
       console.log('Payment response:', response.data);
       
-      // Update booking status
+      // Then update the booking status
       await api.put(`/bookings/${booking.id}/status?status=CONFIRMED`);
       
       toast.success('Payment successful! Your booking has been confirmed.');
       navigate('/my-bookings');
     } catch (err) {
       console.error('Payment error:', err);
-      toast.error(err.response?.data?.message || 'Payment failed. Please try again.');
+      // Check if the error response has a specific message
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Payment failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -128,51 +133,6 @@ const PaymentPage = () => {
               <option value="upi">UPI</option>
             </select>
           </div>
-
-          {paymentMethod === 'card' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Card Number</label>
-                <input
-                  type="text"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').match(/.{1,4}/g)?.join(' ') || '')}
-                  maxLength="19"
-                  placeholder="1234 5678 9012 3456"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
-                  <input
-                    type="text"
-                    value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value.replace(/\D/g, '').match(/.{1,2}/g)?.join('/') || '')}
-                    maxLength="5"
-                    placeholder="MM/YY"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">CVV</label>
-                  <input
-                    type="text"
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    maxLength="3"
-                    placeholder="123"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-              </div>
-            </>
-          )}
 
           <button
             type="submit"

@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
 @Service
 @Transactional
 public class PaymentServiceImpl implements PaymentService {
@@ -25,8 +29,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Payment processPayment(Long bookingId, Double amount, String paymentMethod,
-            String cardNumber, String expiryDate, String cvv) {
+    public Payment processPayment(Long bookingId, Double amount, String method, String status,
+            String paymentDate, String paymentMethod, String transactionId) {
         // Get the booking
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
@@ -40,11 +44,20 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = new Payment();
         payment.setBooking(booking);
         payment.setAmount(amount);
+        payment.setMethod(method);
+        payment.setStatus(status);
+
+        // Handle date parsing with proper error handling
+        try {
+            // Try to parse the ISO date format
+            payment.setPaymentDate(LocalDateTime.parse(paymentDate));
+        } catch (DateTimeParseException e) {
+            // If parsing fails, use current date
+            payment.setPaymentDate(LocalDateTime.now());
+        }
+
         payment.setPaymentMethod(paymentMethod);
-        payment.setCardNumber(cardNumber);
-        payment.setExpiryDate(expiryDate);
-        payment.setCvv(cvv);
-        payment.setStatus("COMPLETED");
+        payment.setTransactionId(transactionId);
 
         // Save payment
         Payment savedPayment = paymentRepository.save(payment);
